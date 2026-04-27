@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Shelf</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Study Shelf</p>
+        <h1 data-i18n="heroTitle">Turn open tabs into a study system.</h1>
+        <p class="hero-copy" data-i18n="heroCopy">
+          Save useful pages with quick takeaways, then come back to them by topic instead of memory.
+        </p>
+      </div>
+      <div class="hero-tools">
+        <div class="hero-stats-line" id="heroStatsLine">0 open tabs · 0 saved · 0 learning</div>
+        <div class="language-toggle" id="languageToggle" aria-label="Language">
+          <button type="button" class="language-option" data-lang="en">EN</button>
+          <button type="button" class="language-option" data-lang="zh">中文</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout" id="layout">
+      <section class="panel panel-tabs">
+        <div class="panel-head">
+          <div>
+            <p class="section-kicker" data-i18n="currentTabs">Current tabs</p>
+            <h2 data-i18n="groupedByWebsite">Grouped by website</h2>
+          </div>
+          <div class="panel-actions">
+            <button class="ghost-button" id="saveAllTabsButton" type="button" data-i18n="saveAllVisible">Save all visible</button>
+            <button class="ghost-button" id="refreshTabsButton" type="button" data-i18n="refresh">Refresh</button>
+          </div>
+        </div>
+        <div class="open-tabs-list" id="openTabsList"></div>
+      </section>
+
+      <div class="layout-resizer" id="layoutResizer" role="separator" aria-label="Resize panels" aria-orientation="vertical" tabindex="0"></div>
+
+      <section class="panel panel-library">
+        <div class="panel-head">
+          <div>
+            <p class="section-kicker" data-i18n="learningLibrary">Learning library</p>
+            <h2 data-i18n="savedPagesContext">Saved pages with context</h2>
+          </div>
+        </div>
+
+        <div class="filters">
+          <label class="search-field">
+            <span data-i18n="search">Search</span>
+            <input id="searchInput" type="search" placeholder="Title, takeaway, tag, domain" data-i18n-placeholder="searchPlaceholder">
+          </label>
+          <label class="filter-field">
+            <span data-i18n="status">Status</span>
+            <select id="statusFilter">
+              <option value="all" data-i18n="all">All</option>
+              <option value="to_learn" data-i18n="toLearn">To Learn</option>
+              <option value="learning" data-i18n="learning">Learning</option>
+              <option value="learned" data-i18n="learned">Learned</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span data-i18n="tag">Tag</span>
+            <select id="tagFilter">
+              <option value="all" data-i18n="allTags">All tags</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="saved-list" id="savedList"></div>
+        <div class="empty-state" id="savedEmptyState" hidden>
+          <span data-i18n="emptyState">Save a page from the left side and it will show up here as a compact study card with takeaways and a quick editing panel.</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <template id="openTabTemplate">
+    <article class="site-card">
+      <div class="site-card-head">
+        <div class="site-heading">
+          <h3 class="site-title"></h3>
+          <span class="site-count"></span>
+        </div>
+        <div class="site-card-actions">
+          <button class="ghost-button save-group-button" type="button" data-i18n="saveGroup">Save group</button>
+          <button class="ghost-button close-group-button" type="button" data-i18n="closeGroup">Close group</button>
+        </div>
+      </div>
+      <div class="site-children"></div>
+      <button class="site-more link-button" type="button" hidden></button>
+    </article>
+  </template>
+
+  <template id="childTabTemplate">
+    <article class="child-tab-card">
+      <div class="child-tab-main">
+        <button class="child-tab-link" type="button">
+          <img class="child-tab-favicon" alt="">
+          <h4 class="child-tab-title"></h4>
+        </button>
+      </div>
+      <div class="child-tab-actions">
+        <button class="link-button child-save-button" type="button" data-i18n="save">Save</button>
+        <button class="link-button child-close-button" type="button" data-i18n="close">Close</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="savedItemTemplate">
+    <article class="saved-card">
+      <div class="saved-topline">
+        <div class="saved-badges">
+          <button class="saved-source saved-open-link" type="button"></button>
+          <span class="saved-status-badge"></span>
+        </div>
+        <div class="saved-actions">
+          <button class="link-button delete-link" type="button" data-i18n="remove">Remove</button>
+        </div>
+      </div>
+      <button class="saved-title-button" type="button">
+        <h3 class="saved-title"></h3>
+      </button>
+      <div class="saved-meta"></div>
+      <div class="saved-preview">
+        <p class="saved-takeaway-preview"></p>
+      </div>
+      <div class="saved-form">
+        <label>
+          <span data-i18n="status">Status</span>
+          <select class="saved-status">
+            <option value="to_learn" data-i18n="toLearn">To Learn</option>
+            <option value="learning" data-i18n="learning">Learning</option>
+            <option value="learned" data-i18n="learned">Learned</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="tags">Tags</span>
+          <input class="saved-tags" type="text" placeholder="AI, JavaScript, Essay" data-i18n-placeholder="tagsPlaceholder">
+        </label>
+        <label class="takeaway-field">
+          <span data-i18n="keyTakeaway">Key takeaway</span>
+          <textarea class="saved-takeaway" rows="3" placeholder="What clicked?" data-i18n-placeholder="takeawayPlaceholder"></textarea>
+        </label>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

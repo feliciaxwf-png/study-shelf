@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Study Shelf icon">
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff8ec"/>
+      <stop offset="0.58" stop-color="#edf4ff"/>
+      <stop offset="1" stop-color="#dce8ff"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="33" y1="34" x2="98" y2="99" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2f6fed"/>
+      <stop offset="1" stop-color="#8b6fdd"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <rect x="25" y="24" width="78" height="86" rx="14" fill="#ffffff" stroke="#d9c5a6" stroke-width="3"/>
+  <path d="M42 24h44v31c0 4.2-4.9 6.5-8.2 3.9L64 48 50.2 58.9C46.9 61.5 42 59.2 42 55V24Z" fill="url(#accent)"/>
+  <path d="M42 74h44" stroke="#2f6fed" stroke-width="7" stroke-linecap="round"/>
+  <path d="M42 91h30" stroke="#b8892e" stroke-width="7" stroke-linecap="round"/>
+</svg>
