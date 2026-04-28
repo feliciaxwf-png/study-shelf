@@ -1,3 +1,9 @@
+# Do you also have these troubles at work every day?
+1. You keep dozens of tabs open for a long time without closing or organizing them, resulting in a slow browser.
+2. You open too many webpages, leaving you no time to read them. You hate to close them, for fear of never finding them again.
+
+Give my self-made tool — Study Shelf a try.
+
 # Study Shelf
 
 Study Shelf is a Chrome extension that turns open browser tabs into a calm, organized learning list.
