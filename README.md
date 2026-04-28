@@ -27,12 +27,14 @@ Study Shelf 是一个 Chrome 扩展，可以把杂乱打开的网页整理成一
 This extension is currently distributed as an unpacked Chrome extension. You can install it manually from GitHub:
 
 1. Open this repository on GitHub: `https://github.com/feliciaxwf-png/study-shelf`.
-2. Send your coding agent (Claude Code, Codex, etc.) this repo and say "install this":
-3. Open Chrome and go to `chrome://extensions/`.
-4. Turn on `Developer mode` in the top-right corner.
-5. Click `Load unpacked`.
-6. Select the `extension` folder inside the unzipped `study-shelf` project.
-7. Open a new tab. Study Shelf will appear as your new tab page.
+2. Click the green `Code` button.
+3. Click `Download ZIP`.
+4. Unzip the downloaded file on your computer.
+5. Open Chrome and go to `chrome://extensions/`.
+6. Turn on `Developer mode` in the top-right corner.
+7. Click `Load unpacked`.
+8. Select the `extension` folder inside the unzipped `study-shelf` project.
+9. Open a new tab. Study Shelf will appear as your new tab page.
 
 ### Use the extension
 
@@ -44,6 +46,22 @@ This extension is currently distributed as an unpacked Chrome extension. You can
 6. Close tabs you no longer need open. You can reopen saved pages from the learning list later.
 7. Use search, tag filters, and status filters to find saved study pages.
 8. Switch between English and Chinese from the language toggle.
+
+## 使用方法
+
+### 从 GitHub 安装
+
+当前版本可以作为 Chrome 的本地扩展手动安装：
+
+1. 打开 GitHub 仓库：`https://github.com/feliciaxwf-png/study-shelf`。
+2. 点击绿色的 `Code` 按钮。
+3. 点击 `Download ZIP`。
+4. 把下载下来的 ZIP 文件解压到电脑上。
+5. 打开 Chrome，进入 `chrome://extensions/`。
+6. 打开右上角的 `Developer mode / 开发者模式`。
+7. 点击 `Load unpacked / 加载已解压的扩展程序`。
+8. 选择解压后的 `study-shelf` 项目里的 `extension` 文件夹。
+9. 打开一个新的 Chrome 标签页，就可以看到 Study Shelf。
 
 ### 使用插件
 
