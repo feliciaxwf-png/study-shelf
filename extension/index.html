@@ -11,12 +11,19 @@
     <header class="hero">
       <div>
         <p class="eyebrow">Study Shelf</p>
-        <h1 data-i18n="heroTitle">Turn open tabs into a study system.</h1>
+        <h1 data-i18n="heroTitle">From tab clutter to learning flow.</h1>
         <p class="hero-copy" data-i18n="heroCopy">
-          Save useful pages with quick takeaways, then come back to them by topic instead of memory.
+          Study Shelf is a learning-first tab manager that turns hard-to-close tabs into a focused study list.
         </p>
       </div>
       <div class="hero-tools">
+        <form class="browser-launcher" id="browserLauncher">
+          <div class="browser-launcher-row">
+            <span class="browser-launcher-icon" aria-hidden="true"></span>
+            <input id="browserLauncherInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search Google or enter a URL" data-i18n-placeholder="browserLauncherPlaceholder">
+            <button class="ghost-button browser-launcher-button" type="submit" data-i18n="go">Go</button>
+          </div>
+        </form>
         <div class="hero-stats-line" id="heroStatsLine">0 open tabs · 0 saved · 0 learning</div>
         <div class="language-toggle" id="languageToggle" aria-label="Language">
           <button type="button" class="language-option" data-lang="en">EN</button>
@@ -30,12 +37,55 @@
         <div class="panel-head">
           <div>
             <p class="section-kicker" data-i18n="currentTabs">Current tabs</p>
-            <h2 data-i18n="groupedByWebsite">Grouped by website</h2>
           </div>
+        </div>
+        <div class="panel-controls">
           <div class="panel-actions">
-            <button class="ghost-button" id="saveAllTabsButton" type="button" data-i18n="saveAllVisible">Save all visible</button>
+            <div class="group-mode-toggle" id="groupModeToggle" aria-label="Group tabs by">
+              <button type="button" class="group-mode-option is-active" data-group-mode="recent" data-i18n="byRecent">Recently viewed</button>
+              <button type="button" class="group-mode-option" data-group-mode="website" data-i18n="byWebsite">By website</button>
+              <button type="button" class="group-mode-option" data-group-mode="window" data-i18n="byWindow">By window</button>
+            </div>
+            <label class="window-filter" id="windowFilterLabel">
+              <select id="windowFilter"></select>
+            </label>
             <button class="ghost-button" id="refreshTabsButton" type="button" data-i18n="refresh">Refresh</button>
           </div>
+          <div class="selection-tray" id="selectionTray" hidden>
+            <div class="selection-tray-copy">
+              <span class="selection-count" id="selectionCount">0 selected</span>
+              <span class="selection-dot" aria-hidden="true"></span>
+              <span class="selection-hint" data-i18n="selectionHint">Choose tabs, then save them with tags and a status.</span>
+            </div>
+            <div class="selection-tray-actions">
+              <button class="ghost-button" id="saveSelectedButton" type="button" data-i18n="saveSelected">Save selected</button>
+              <button class="link-button" id="clearSelectionButton" type="button" data-i18n="clearSelection">Clear</button>
+            </div>
+          </div>
+          <form class="save-composer" id="saveComposer" hidden>
+            <div class="save-composer-head">
+              <div>
+                <p class="save-composer-kicker" data-i18n="saveToLibrary">Save to library</p>
+                <p class="save-composer-summary" id="saveComposerSummary">1 tab ready to save</p>
+              </div>
+              <button class="link-button" id="cancelSaveComposerButton" type="button" data-i18n="cancel">Cancel</button>
+            </div>
+            <div class="save-composer-fields">
+              <label class="save-composer-field">
+                <span data-i18n="status">Status</span>
+                <select id="saveComposerStatus">
+                  <option value="to_learn" data-i18n="toLearn">To Learn</option>
+                  <option value="learning" data-i18n="learning">Learning</option>
+                  <option value="learned" data-i18n="learned">Learned</option>
+                </select>
+              </label>
+              <label class="save-composer-field save-composer-tags-field">
+                <span data-i18n="tags">Tags</span>
+                <input id="saveComposerTags" type="text" placeholder="AI tools, Design, Research" data-i18n-placeholder="saveComposerTagsPlaceholder">
+              </label>
+              <button class="ghost-button save-composer-submit" type="submit" data-i18n="saveNow">Save now</button>
+            </div>
+          </form>
         </div>
         <div class="open-tabs-list" id="openTabsList"></div>
       </section>
@@ -46,16 +96,17 @@
         <div class="panel-head">
           <div>
             <p class="section-kicker" data-i18n="learningLibrary">Learning library</p>
-            <h2 data-i18n="savedPagesContext">Saved pages with context</h2>
           </div>
         </div>
 
         <div class="filters">
-          <label class="search-field">
-            <span data-i18n="search">Search</span>
-            <input id="searchInput" type="search" placeholder="Title, takeaway, tag, domain" data-i18n-placeholder="searchPlaceholder">
+          <label class="filter-field filter-field-inline">
+            <span data-i18n="tag">Tag</span>
+            <select id="tagFilter">
+              <option value="all" data-i18n="allTags">All tags</option>
+            </select>
           </label>
-          <label class="filter-field">
+          <label class="filter-field filter-field-inline">
             <span data-i18n="status">Status</span>
             <select id="statusFilter">
               <option value="all" data-i18n="all">All</option>
@@ -64,13 +115,35 @@
               <option value="learned" data-i18n="learned">Learned</option>
             </select>
           </label>
-          <label class="filter-field">
-            <span data-i18n="tag">Tag</span>
-            <select id="tagFilter">
-              <option value="all" data-i18n="allTags">All tags</option>
-            </select>
+          <label class="search-field filter-field-inline">
+            <span data-i18n="searchSavedPages">Search saved pages</span>
+            <input id="searchInput" type="search" placeholder="Title, tag, takeaway" data-i18n-placeholder="searchPlaceholder">
           </label>
         </div>
+        <form class="saved-bulk-editor" id="savedBulkEditor" hidden>
+          <div class="saved-bulk-copy">
+            <span class="saved-bulk-count" id="savedBulkCount">0 selected</span>
+            <span class="selection-dot" aria-hidden="true"></span>
+            <span class="saved-bulk-hint" data-i18n="savedBulkHint">Update status or tags for selected study notes.</span>
+          </div>
+          <div class="saved-bulk-fields">
+            <label class="saved-bulk-field">
+              <span data-i18n="status">Status</span>
+              <select id="savedBulkStatus">
+                <option value="" data-i18n="keepCurrentStatus">Keep current</option>
+                <option value="to_learn" data-i18n="toLearn">To Learn</option>
+                <option value="learning" data-i18n="learning">Learning</option>
+                <option value="learned" data-i18n="learned">Learned</option>
+              </select>
+            </label>
+            <label class="saved-bulk-field saved-bulk-tags-field">
+              <span data-i18n="tags">Tags</span>
+              <input id="savedBulkTags" type="text" placeholder="AI tools, Design, Research" data-i18n-placeholder="saveComposerTagsPlaceholder">
+            </label>
+            <button class="ghost-button saved-bulk-apply" type="submit" data-i18n="applyChanges">Apply</button>
+            <button class="link-button" id="clearSavedSelectionButton" type="button" data-i18n="clearSelection">Clear</button>
+          </div>
+        </form>
 
         <div class="saved-list" id="savedList"></div>
         <div class="empty-state" id="savedEmptyState" hidden>
@@ -100,6 +173,10 @@
   <template id="childTabTemplate">
     <article class="child-tab-card">
       <div class="child-tab-main">
+        <label class="tab-select-control">
+          <input class="tab-select-input" type="checkbox">
+          <span class="tab-select-ui" aria-hidden="true"></span>
+        </label>
         <button class="child-tab-link" type="button">
           <img class="child-tab-favicon" alt="">
           <h4 class="child-tab-title"></h4>
@@ -115,9 +192,14 @@
   <template id="savedItemTemplate">
     <article class="saved-card">
       <div class="saved-topline">
-        <div class="saved-badges">
-          <button class="saved-source saved-open-link" type="button"></button>
-          <span class="saved-status-badge"></span>
+        <div class="saved-leading">
+          <label class="tab-select-control saved-select-control">
+            <input class="saved-select-input" type="checkbox">
+            <span class="tab-select-ui" aria-hidden="true"></span>
+          </label>
+          <div class="saved-chip-row">
+            <span class="saved-status-badge"></span>
+          </div>
         </div>
         <div class="saved-actions">
           <button class="link-button delete-link" type="button" data-i18n="remove">Remove</button>
@@ -127,26 +209,13 @@
         <h3 class="saved-title"></h3>
       </button>
       <div class="saved-meta"></div>
-      <div class="saved-preview">
-        <p class="saved-takeaway-preview"></p>
-      </div>
-      <div class="saved-form">
-        <label>
-          <span data-i18n="status">Status</span>
-          <select class="saved-status">
-            <option value="to_learn" data-i18n="toLearn">To Learn</option>
-            <option value="learning" data-i18n="learning">Learning</option>
-            <option value="learned" data-i18n="learned">Learned</option>
-          </select>
-        </label>
-        <label>
-          <span data-i18n="tags">Tags</span>
-          <input class="saved-tags" type="text" placeholder="AI, JavaScript, Essay" data-i18n-placeholder="tagsPlaceholder">
-        </label>
-        <label class="takeaway-field">
-          <span data-i18n="keyTakeaway">Key takeaway</span>
-          <textarea class="saved-takeaway" rows="3" placeholder="What clicked?" data-i18n-placeholder="takeawayPlaceholder"></textarea>
-        </label>
+      <div class="saved-takeaway-field">
+        <div class="saved-takeaway-line">
+          <strong class="saved-takeaway-label" data-i18n="keyTakeaway">Key takeaway</strong>
+          <button class="saved-takeaway-text" type="button"></button>
+        </div>
+        <textarea class="saved-takeaway-input" rows="2" placeholder="What clicked?" data-i18n-placeholder="takeawayPlaceholder" hidden></textarea>
+        <button class="saved-takeaway-toggle link-button" type="button" hidden></button>
       </div>
     </article>
   </template>

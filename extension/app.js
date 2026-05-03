@@ -1,31 +1,74 @@
 const STORAGE_KEY = "studyShelfItems";
 const PANEL_WIDTH_KEY = "studyShelfLeftPanel";
 const LANGUAGE_KEY = "studyShelfLanguage";
+const GROUP_MODE_KEY = "studyShelfGroupMode";
+const WINDOW_FILTER_KEY = "studyShelfWindowFilter";
+const WINDOW_NAMES_KEY = "studyShelfWindowNames";
 const DEFAULT_VISIBLE_CHILDREN = 3;
 
 const state = {
   openTabs: [],
   groupedTabs: [],
+  groupedWindows: [],
   savedItems: [],
+  visibleTabs: [],
   search: "",
   statusFilter: "all",
   tagFilter: "all",
   language: "en",
-  expandedGroups: new Set()
+  groupMode: "recent",
+  windowFilter: "all",
+  currentWindowId: null,
+  windowNames: {},
+  editingWindowId: null,
+  selectedTabIds: new Set(),
+  selectedSavedItemIds: new Set(),
+  expandedTakeaways: new Set(),
+  editingTakeawayId: null,
+  saveComposer: {
+    isOpen: false,
+    tabIds: [],
+    status: "to_learn",
+    tags: ""
+  },
+  expandedGroups: new Set(),
+  renderedGroups: new Map()
 };
 
 const translations = {
   en: {
-    heroTitle: "Turn open tabs into a study system.",
-    heroCopy: "Save useful pages with quick takeaways, then come back to them by topic instead of memory.",
+    heroTitle: "From tab clutter to learning flow.",
+    heroCopy: "Study Shelf is a learning-first tab manager that turns hard-to-close tabs into a focused study list.",
     currentTabs: "Current tabs",
-    groupedByWebsite: "Grouped by website",
-    saveAllVisible: "Save all tabs",
+    byWebsite: "By website",
+    byWindow: "By window",
+    byRecent: "Recently viewed",
+    windowFilter: "Window",
+    renameWindow: "Rename",
+    saveWindowName: "Save",
+    cancelWindowName: "Cancel",
+    windowNamePlaceholder: "Name this window",
+    allWindows: "All windows",
+    currentWindow: "Current window",
+    browserLauncherPlaceholder: "Search Google or enter a URL",
+    go: "Go",
     refresh: "Refresh",
+    selectionHint: "Choose tabs, then save them with tags and a status.",
+    selectedCount: count => `${count} selected`,
+    clearSelection: "Clear",
+    saveSelected: "Save selected",
+    saveToLibrary: "Save to library",
+    saveComposerSummary: count => `${count} tab${count === 1 ? "" : "s"} ready to save`,
+    saveComposerTagsPlaceholder: "AI tools, Design, Research",
+    saveNow: "Save now",
     learningLibrary: "Learning library",
-    savedPagesContext: "Saved pages with context",
+    open: "Open",
     search: "Search",
-    searchPlaceholder: "Title, takeaway, tag, domain",
+    searchSavedPages: "Search saved pages",
+    searchPlaceholder: "Title, tag, takeaway",
+    savedBulkHint: "Update status or tags for selected study notes.",
+    keepCurrentStatus: "Keep current",
+    applyChanges: "Apply",
     status: "Status",
     all: "All",
     toLearn: "To Learn",
@@ -45,6 +88,7 @@ const translations = {
     close: "Close",
     remove: "Remove",
     showLess: "Show less",
+    showMore: "Show more",
     more: count => `+${count} more`,
     openTabs: count => `${count} open tab${count === 1 ? "" : "s"}`,
     savedCount: count => `${count} saved`,
@@ -53,19 +97,44 @@ const translations = {
     savedLabel: "saved",
     learningLabel: "learning",
     openPages: count => `${count} open page${count === 1 ? "" : "s"}`,
+    windowLabel: index => `Window ${index}`,
+    windowTabs: count => `${count} tab${count === 1 ? "" : "s"}`,
+    recentTabs: "Recently viewed",
     savedOn: date => `Saved ${date}`
   },
   zh: {
-    heroTitle: "把打开的网页变成学习清单。",
-    heroCopy: "先保存值得看的页面，补一句关键收获，之后按主题回来继续学。",
+    heroTitle: "从标签混乱，到学习流。",
+    heroCopy: "Study Shelf 是一款以学习为先的标签页管理工具，能把那些舍不得关掉的网页整理成一份专注的学习清单。",
     currentTabs: "当前网页",
-    groupedByWebsite: "按网站整理",
-    saveAllVisible: "保存当前全部",
+    byWebsite: "按网站",
+    byWindow: "按窗口",
+    byRecent: "最近查看",
+    windowFilter: "窗口",
+    renameWindow: "重命名",
+    saveWindowName: "保存",
+    cancelWindowName: "取消",
+    windowNamePlaceholder: "给这个窗口命名",
+    allWindows: "全部窗口",
+    currentWindow: "当前窗口",
+    browserLauncherPlaceholder: "用 Google 搜索或输入网址",
+    go: "打开",
     refresh: "刷新",
+    selectionHint: "选中网页后，可以一次性设置标签和状态再保存。",
+    selectedCount: count => `已选 ${count} 个`,
+    clearSelection: "清空",
+    saveSelected: "保存所选",
+    saveToLibrary: "保存到学习清单",
+    saveComposerSummary: count => `${count} 个网页准备保存`,
+    saveComposerTagsPlaceholder: "AI 工具, 设计, 调研",
+    saveNow: "立即保存",
     learningLibrary: "学习清单",
-    savedPagesContext: "已保存的学习页面",
+    open: "打开",
     search: "搜索",
-    searchPlaceholder: "标题、收获、标签、网站",
+    searchSavedPages: "搜索已保存网页",
+    searchPlaceholder: "标题、标签、关键收获",
+    savedBulkHint: "给选中的学习纸条统一修改状态或标签。",
+    keepCurrentStatus: "保持原样",
+    applyChanges: "应用",
     status: "状态",
     all: "全部",
     toLearn: "待学习",
@@ -85,6 +154,7 @@ const translations = {
     close: "关闭",
     remove: "移除",
     showLess: "收起",
+    showMore: "展开",
     more: count => `还有 ${count} 个`,
     openTabs: count => `${count} 个打开网页`,
     savedCount: count => `${count} 个已保存`,
@@ -93,6 +163,9 @@ const translations = {
     savedLabel: "已保存",
     learningLabel: "学习中",
     openPages: count => `${count} 个页面`,
+    windowLabel: index => `窗口 ${index}`,
+    windowTabs: count => `${count} 个标签页`,
+    recentTabs: "最近查看",
     savedOn: date => `保存于 ${date}`
   }
 };
@@ -104,8 +177,26 @@ const elements = {
   searchInput: document.querySelector("#searchInput"),
   statusFilter: document.querySelector("#statusFilter"),
   tagFilter: document.querySelector("#tagFilter"),
+  savedBulkEditor: document.querySelector("#savedBulkEditor"),
+  savedBulkCount: document.querySelector("#savedBulkCount"),
+  savedBulkStatus: document.querySelector("#savedBulkStatus"),
+  savedBulkTags: document.querySelector("#savedBulkTags"),
+  clearSavedSelectionButton: document.querySelector("#clearSavedSelectionButton"),
+  browserLauncher: document.querySelector("#browserLauncher"),
+  browserLauncherInput: document.querySelector("#browserLauncherInput"),
+  groupModeToggle: document.querySelector("#groupModeToggle"),
+  windowFilter: document.querySelector("#windowFilter"),
+  windowFilterLabel: document.querySelector("#windowFilterLabel"),
   refreshTabsButton: document.querySelector("#refreshTabsButton"),
-  saveAllTabsButton: document.querySelector("#saveAllTabsButton"),
+  selectionTray: document.querySelector("#selectionTray"),
+  selectionCount: document.querySelector("#selectionCount"),
+  saveSelectedButton: document.querySelector("#saveSelectedButton"),
+  clearSelectionButton: document.querySelector("#clearSelectionButton"),
+  saveComposer: document.querySelector("#saveComposer"),
+  saveComposerSummary: document.querySelector("#saveComposerSummary"),
+  saveComposerStatus: document.querySelector("#saveComposerStatus"),
+  saveComposerTags: document.querySelector("#saveComposerTags"),
+  cancelSaveComposerButton: document.querySelector("#cancelSaveComposerButton"),
   heroStatsLine: document.querySelector("#heroStatsLine"),
   languageToggle: document.querySelector("#languageToggle"),
   layout: document.querySelector("#layout"),
@@ -119,6 +210,7 @@ const demoTabs = [
   {
     id: 1001,
     windowId: 1,
+    lastAccessed: Date.now() - 1000 * 60 * 3,
     title: "Download LM Studio - Mac, Linux, Windows",
     url: "https://lmstudio.ai/download",
     domain: "lmstudio.ai",
@@ -127,6 +219,7 @@ const demoTabs = [
   {
     id: 1002,
     windowId: 1,
+    lastAccessed: Date.now() - 1000 * 60 * 15,
     title: "OpenAI Platform Docs",
     url: "https://platform.openai.com/docs",
     domain: "platform.openai.com",
@@ -135,6 +228,7 @@ const demoTabs = [
   {
     id: 1003,
     windowId: 1,
+    lastAccessed: Date.now() - 1000 * 60 * 35,
     title: "Prompt engineering guide",
     url: "https://platform.openai.com/docs/guides/prompt-engineering",
     domain: "platform.openai.com",
@@ -142,13 +236,16 @@ const demoTabs = [
   },
   {
     id: 1004,
-    windowId: 1,
+    windowId: 2,
+    lastAccessed: Date.now() - 1000 * 60 * 6,
     title: "即梦AI - 一站式AI创作平台",
     url: "https://jimeng.jianying.com",
     domain: "jimeng.jianying.com",
     faviconUrl: getFaviconUrl("https://jimeng.jianying.com")
   }
 ];
+
+let refreshTabsTimer = null;
 
 function buildDemoSavedItems() {
   return demoTabs.slice(0, 3).map((tab, index) => ({
@@ -206,6 +303,19 @@ async function storageSet(key, value) {
 function t(key, ...args) {
   const value = translations[state.language][key] ?? translations.en[key] ?? key;
   return typeof value === "function" ? value(...args) : value;
+}
+
+function uniq(values) {
+  return [...new Set(values)];
+}
+
+function parseTags(value) {
+  return uniq(
+    value
+      .split(",")
+      .map(tag => cleanText(tag))
+      .filter(Boolean)
+  );
 }
 
 function translateRoot(root) {
@@ -341,7 +451,25 @@ function applyLanguage(language) {
     button.classList.toggle("is-active", button.dataset.lang === language);
   });
 
+  applyGroupMode(state.groupMode);
   updateStatsLine();
+}
+
+function applyGroupMode(groupMode) {
+  state.groupMode = ["recent", "website", "window"].includes(groupMode) ? groupMode : "recent";
+  localStorage.setItem(GROUP_MODE_KEY, state.groupMode);
+
+  document.querySelectorAll(".group-mode-option").forEach(button => {
+    button.classList.toggle("is-active", button.dataset.groupMode === state.groupMode);
+  });
+}
+
+async function loadWindowNames() {
+  state.windowNames = (await storageGet(WINDOW_NAMES_KEY)) || {};
+}
+
+async function persistWindowNames() {
+  await storageSet(WINDOW_NAMES_KEY, state.windowNames);
 }
 
 function initializeLanguage() {
@@ -355,6 +483,13 @@ function initializeLanguage() {
         ? savedLanguage
         : browserLanguage;
   applyLanguage(initialLanguage);
+}
+
+function initializeGroupMode() {
+  const savedMode = localStorage.getItem(GROUP_MODE_KEY);
+  applyGroupMode(savedMode);
+  const savedWindowFilter = localStorage.getItem(WINDOW_FILTER_KEY);
+  state.windowFilter = savedWindowFilter || "all";
 }
 
 function setPanelWidth(value, shouldPersist = false) {
@@ -375,6 +510,7 @@ function initializeResizableLayout() {
   let isDragging = false;
   let pendingWidth = null;
   let frameId = null;
+  let activePointerId = null;
 
   const commitFrame = () => {
     frameId = null;
@@ -385,7 +521,10 @@ function initializeResizableLayout() {
 
   const updateFromPointer = event => {
     if (!isDragging || !elements.layout) return;
+    if (activePointerId !== null && event.pointerId !== activePointerId) return;
+    event.preventDefault();
     const rect = elements.layout.getBoundingClientRect();
+    if (!rect.width) return;
     pendingWidth = ((event.clientX - rect.left) / rect.width) * 100;
     if (!frameId) {
       frameId = requestAnimationFrame(commitFrame);
@@ -393,18 +532,34 @@ function initializeResizableLayout() {
   };
 
   elements.layoutResizer.addEventListener("pointerdown", event => {
+    if (event.button !== 0) return;
+    event.preventDefault();
     isDragging = true;
+    activePointerId = event.pointerId;
     elements.layout.classList.add("is-resizing");
-    elements.layoutResizer.setPointerCapture(event.pointerId);
+    document.body.classList.add("is-layout-resizing");
+    try {
+      elements.layoutResizer.setPointerCapture(event.pointerId);
+    } catch {
+      // Window-level listeners below keep the drag responsive if capture is unavailable.
+    }
+    window.addEventListener("pointermove", updateFromPointer, { passive: false });
+    window.addEventListener("pointerup", stopDragging);
+    window.addEventListener("pointercancel", stopDragging);
     updateFromPointer(event);
   });
 
-  elements.layoutResizer.addEventListener("pointermove", updateFromPointer);
-
   const stopDragging = event => {
     if (!isDragging) return;
+    if (activePointerId !== null && event.pointerId !== activePointerId) return;
+    event.preventDefault();
     isDragging = false;
+    activePointerId = null;
     elements.layout.classList.remove("is-resizing");
+    document.body.classList.remove("is-layout-resizing");
+    window.removeEventListener("pointermove", updateFromPointer);
+    window.removeEventListener("pointerup", stopDragging);
+    window.removeEventListener("pointercancel", stopDragging);
     if (frameId) {
       cancelAnimationFrame(frameId);
       frameId = null;
@@ -485,11 +640,12 @@ function groupTabsBySite(tabs) {
   const groups = new Map();
 
   tabs.forEach(tab => {
-    const key = getSiteKey(tab.url);
+    const key = tab.groupKey || getSiteKey(tab.url);
+    const label = tab.groupLabel || (key === "local-files" ? "Local files" : getSiteKey(tab.url));
     if (!groups.has(key)) {
       groups.set(key, {
         key,
-        label: key === "local-files" ? "Local files" : key,
+        label,
         tabs: []
       });
     }
@@ -502,6 +658,121 @@ function groupTabsBySite(tabs) {
       tabs: group.tabs.sort((a, b) => a.title.localeCompare(b.title))
     }))
     .sort((a, b) => b.tabs.length - a.tabs.length || a.label.localeCompare(b.label));
+}
+
+function groupTabsByWindow(tabs) {
+  const windows = new Map();
+  const windowIndexes = getWindowIndexMap();
+
+  tabs.forEach(tab => {
+    if (!windows.has(tab.windowId)) {
+      windows.set(tab.windowId, {
+        id: tab.windowId,
+        tabs: []
+      });
+    }
+    windows.get(tab.windowId).tabs.push(tab);
+  });
+
+  return [...windows.values()]
+    .sort((a, b) => {
+      if (a.id === state.currentWindowId) return -1;
+      if (b.id === state.currentWindowId) return 1;
+      return (windowIndexes.get(a.id) || a.id) - (windowIndexes.get(b.id) || b.id);
+    })
+    .map(windowGroup => ({
+      ...windowGroup,
+      key: `window-${windowGroup.id}`,
+      index: windowIndexes.get(windowGroup.id) || 1,
+      label: getWindowLabel(windowGroup.id, windowIndexes.get(windowGroup.id) || 1),
+      isCurrent: windowGroup.id === state.currentWindowId,
+      tabs: windowGroup.tabs
+        .slice()
+        .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0) || a.title.localeCompare(b.title))
+    }));
+}
+
+function getWindowIndexMap() {
+  const windowIds = [...new Set(state.openTabs.map(tab => tab.windowId))]
+    .filter(id => id !== undefined && id !== null)
+    .sort((a, b) => a - b);
+  return new Map(windowIds.map((id, index) => [id, index + 1]));
+}
+
+function getWindowLabel(windowId, index) {
+  const customName = cleanText(state.windowNames[String(windowId)] || "");
+  return customName || t("windowLabel", index);
+}
+
+function isTabSaved(tabOrUrl) {
+  const normalizedUrl = normalizeUrl(typeof tabOrUrl === "string" ? tabOrUrl : tabOrUrl?.url || "");
+  return state.savedItems.some(item => item.url === normalizedUrl);
+}
+
+function getUnsavedTabIds(tabIds) {
+  return uniq(tabIds)
+    .map(tabId => Number(tabId))
+    .filter(tabId => {
+      const tab = state.openTabs.find(entry => entry.id === tabId);
+      return tab && !isTabSaved(tab);
+    });
+}
+
+function syncSelectionState() {
+  const validTabIds = new Set(state.openTabs.map(tab => tab.id));
+  state.selectedTabIds = new Set(
+    [...state.selectedTabIds].filter(tabId => validTabIds.has(tabId) && !isTabSaved(state.openTabs.find(tab => tab.id === tabId)))
+  );
+
+  state.saveComposer.tabIds = getUnsavedTabIds(state.saveComposer.tabIds);
+  if (state.saveComposer.isOpen && state.saveComposer.tabIds.length === 0) {
+    closeSaveComposer({ keepSelection: false });
+  }
+}
+
+function getFilteredOpenTabs() {
+  if (state.groupMode === "window" && state.windowFilter.startsWith("window-")) {
+    const windowId = Number(state.windowFilter.replace("window-", ""));
+    return state.openTabs.filter(tab => tab.windowId === windowId);
+  }
+
+  return state.openTabs.slice();
+}
+
+function getWindowOptions() {
+  return state.groupedWindows.map(windowGroup => ({
+    value: `window-${windowGroup.id}`,
+    label: `${windowGroup.label}${windowGroup.isCurrent ? ` (${t("currentWindow")})` : ""}`
+  }));
+}
+
+function startWindowRename(windowId) {
+  state.editingWindowId = windowId;
+  renderOpenTabs();
+}
+
+function cancelWindowRename() {
+  state.editingWindowId = null;
+  renderOpenTabs();
+}
+
+async function saveWindowRename(windowId, nextName) {
+  const normalizedName = cleanText(nextName);
+  if (normalizedName) {
+    state.windowNames[String(windowId)] = normalizedName;
+  } else {
+    delete state.windowNames[String(windowId)];
+  }
+  state.editingWindowId = null;
+  await persistWindowNames();
+  renderOpenTabs();
+}
+
+function updateOpenTabGroups() {
+  state.visibleTabs = getFilteredOpenTabs();
+  state.groupedTabs = groupTabsBySite(state.visibleTabs);
+  state.groupedWindows = groupTabsByWindow(state.openTabs);
+  syncSelectionState();
 }
 
 function collectSuggestedTags(snapshot, domain) {
@@ -543,6 +814,62 @@ function getStatusLabel(status) {
 function getPreviewText(text, fallback) {
   const clean = cleanText(text);
   return clean || fallback;
+}
+
+function buildSearchUrl(value) {
+  const query = cleanText(value);
+  if (!query) return "";
+
+  const hasProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(query);
+  const looksLikeDomain = /^[^\s]+\.[^\s]{2,}(\/.*)?$/i.test(query);
+
+  if (hasProtocol) return query;
+  if (looksLikeDomain) return `https://${query}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+async function openBrowserQuery(value) {
+  const url = buildSearchUrl(value);
+  if (!url) return;
+
+  if (!hasChromeApi("tabs")) {
+    window.open(url, "_blank", "noopener");
+    return;
+  }
+
+  await chrome.tabs.create({ url });
+}
+
+async function refreshOpenTabs() {
+  await loadOpenTabs();
+  renderOpenTabs();
+}
+
+function scheduleOpenTabsRefresh() {
+  if (!hasChromeApi("tabs")) return;
+  window.clearTimeout(refreshTabsTimer);
+  refreshTabsTimer = window.setTimeout(() => {
+    refreshOpenTabs();
+  }, 300);
+}
+
+function bindTabSyncEvents() {
+  if (!hasChromeApi("tabs")) return;
+
+  chrome.tabs.onCreated?.addListener(scheduleOpenTabsRefresh);
+  chrome.tabs.onRemoved?.addListener(scheduleOpenTabsRefresh);
+  chrome.tabs.onAttached?.addListener(scheduleOpenTabsRefresh);
+  chrome.tabs.onDetached?.addListener(scheduleOpenTabsRefresh);
+  chrome.tabs.onReplaced?.addListener(scheduleOpenTabsRefresh);
+  chrome.tabs.onUpdated?.addListener((_tabId, changeInfo) => {
+    if (changeInfo.status || changeInfo.title || changeInfo.url || changeInfo.favIconUrl) {
+      scheduleOpenTabsRefresh();
+    }
+  });
+
+  chrome.windows?.onFocusChanged?.addListener(scheduleOpenTabsRefresh);
+  chrome.windows?.onCreated?.addListener(scheduleOpenTabsRefresh);
+  chrome.windows?.onRemoved?.addListener(scheduleOpenTabsRefresh);
 }
 
 async function captureTabSnapshot(tabId) {
@@ -608,8 +935,27 @@ async function persistSavedItems() {
 async function loadOpenTabs() {
   if (!hasChromeApi("tabs")) {
     state.openTabs = demoTabs.slice();
-    state.groupedTabs = groupTabsBySite(state.openTabs);
+    state.currentWindowId = 1;
+    updateOpenTabGroups();
     return;
+  }
+
+  if (chrome.tabs?.getCurrent) {
+    try {
+      const currentTab = await chrome.tabs.getCurrent();
+      state.currentWindowId = currentTab?.windowId || null;
+    } catch {
+      state.currentWindowId = null;
+    }
+  }
+
+  if (chrome.windows?.getCurrent) {
+    try {
+      const currentWindow = await chrome.windows.getCurrent();
+      state.currentWindowId = state.currentWindowId || currentWindow?.id || null;
+    } catch {
+      state.currentWindowId = state.currentWindowId || null;
+    }
   }
 
   const tabs = await chrome.tabs.query({});
@@ -618,14 +964,15 @@ async function loadOpenTabs() {
     .map(tab => ({
       id: tab.id,
       windowId: tab.windowId,
+      lastAccessed: tab.lastAccessed || 0,
       title: tab.title || "Untitled page",
       url: tab.url || "",
       domain: getDomain(tab.url || ""),
       faviconUrl: getFaviconUrl(tab.url || "")
     }))
-    .sort((a, b) => a.domain.localeCompare(b.domain) || a.title.localeCompare(b.title));
+    .sort((a, b) => a.windowId - b.windowId || a.domain.localeCompare(b.domain) || a.title.localeCompare(b.title));
 
-  state.groupedTabs = groupTabsBySite(state.openTabs);
+  updateOpenTabGroups();
 }
 
 function getFilteredSavedItems() {
@@ -667,11 +1014,131 @@ function updateTagFilterOptions() {
   state.tagFilter = elements.tagFilter.value;
 }
 
-function renderOpenTabs() {
-  elements.openTabsList.innerHTML = "";
-  updateStatsLine();
+function updateWindowFilterOptions() {
+  const validValues = new Set(["all"]);
+  elements.windowFilter.innerHTML = "";
 
-  state.groupedTabs.forEach(group => {
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = t("allWindows");
+  elements.windowFilter.appendChild(allOption);
+
+  getWindowOptions().forEach(optionData => {
+    validValues.add(optionData.value);
+    const option = document.createElement("option");
+    option.value = optionData.value;
+    option.textContent = optionData.label;
+    elements.windowFilter.appendChild(option);
+  });
+
+  if (state.windowFilter === "current" && state.currentWindowId) {
+    state.windowFilter = `window-${state.currentWindowId}`;
+    localStorage.setItem(WINDOW_FILTER_KEY, state.windowFilter);
+  }
+
+  if (!validValues.has(state.windowFilter)) {
+    state.windowFilter = "all";
+  }
+
+  elements.windowFilter.value = state.windowFilter;
+  elements.windowFilterLabel.hidden = state.groupMode !== "window" || state.groupedWindows.length <= 1;
+}
+
+function renderSelectionTray() {
+  const selectedCount = state.selectedTabIds.size;
+  elements.selectionTray.hidden = selectedCount === 0;
+  elements.selectionCount.textContent = t("selectedCount", selectedCount);
+}
+
+function renderSaveComposer() {
+  elements.saveComposer.hidden = !state.saveComposer.isOpen;
+  if (!state.saveComposer.isOpen) {
+    return;
+  }
+
+  elements.saveComposerStatus.value = state.saveComposer.status;
+  elements.saveComposerTags.value = state.saveComposer.tags;
+  elements.saveComposerSummary.textContent = t("saveComposerSummary", state.saveComposer.tabIds.length);
+}
+
+function syncSavedSelectionState() {
+  const validIds = new Set(state.savedItems.map(item => item.id));
+  state.selectedSavedItemIds = new Set(
+    [...state.selectedSavedItemIds].filter(itemId => validIds.has(itemId))
+  );
+}
+
+function renderSavedBulkEditor() {
+  syncSavedSelectionState();
+  const selectedCount = state.selectedSavedItemIds.size;
+  elements.savedBulkEditor.hidden = selectedCount === 0;
+  elements.savedBulkCount.textContent = t("selectedCount", selectedCount);
+  if (selectedCount === 0) {
+    elements.savedBulkStatus.value = "";
+    elements.savedBulkTags.value = "";
+  }
+}
+
+function toggleSavedItemSelection(itemId) {
+  if (state.selectedSavedItemIds.has(itemId)) {
+    state.selectedSavedItemIds.delete(itemId);
+  } else {
+    state.selectedSavedItemIds.add(itemId);
+  }
+  renderSavedBulkEditor();
+  renderSavedItems();
+}
+
+function getDefaultComposerTags(tabIds) {
+  const tabs = tabIds
+    .map(tabId => state.openTabs.find(tab => tab.id === tabId))
+    .filter(Boolean);
+
+  const uniqueDomains = uniq(tabs.map(tab => tab.domain).filter(Boolean));
+  return uniqueDomains.length === 1 ? uniqueDomains[0] : "";
+}
+
+function openSaveComposer(tabIds) {
+  const nextTabIds = getUnsavedTabIds(tabIds);
+  if (nextTabIds.length === 0) {
+    return false;
+  }
+
+  state.saveComposer.isOpen = true;
+  state.saveComposer.tabIds = nextTabIds;
+  state.saveComposer.status = "to_learn";
+  state.saveComposer.tags = getDefaultComposerTags(nextTabIds);
+  renderSelectionTray();
+  renderSaveComposer();
+  window.requestAnimationFrame(() => {
+    elements.saveComposerTags.focus();
+    elements.saveComposerTags.select();
+  });
+  return true;
+}
+
+function closeSaveComposer({ keepSelection = true } = {}) {
+  state.saveComposer.isOpen = false;
+  state.saveComposer.tabIds = [];
+  state.saveComposer.status = "to_learn";
+  state.saveComposer.tags = "";
+  if (!keepSelection) {
+    state.selectedTabIds.clear();
+  }
+  renderSelectionTray();
+  renderSaveComposer();
+}
+
+function toggleTabSelection(tabId) {
+  if (state.selectedTabIds.has(tabId)) {
+    state.selectedTabIds.delete(tabId);
+  } else {
+    state.selectedTabIds.add(tabId);
+  }
+  renderSelectionTray();
+}
+
+function renderSiteGroup(group, container = elements.openTabsList) {
     const fragment = elements.openTabTemplate.content.cloneNode(true);
     translateRoot(fragment);
     const title = fragment.querySelector(".site-title");
@@ -683,6 +1150,7 @@ function renderOpenTabs() {
     const expanded = state.expandedGroups.has(group.key);
     const visibleTabs = expanded ? group.tabs : group.tabs.slice(0, DEFAULT_VISIBLE_CHILDREN);
 
+    state.renderedGroups.set(group.key, group);
     title.textContent = group.label;
     count.textContent = t("openPages", group.tabs.length);
     saveGroupButton.dataset.groupKey = group.key;
@@ -696,6 +1164,9 @@ function renderOpenTabs() {
       const favicon = childFragment.querySelector(".child-tab-favicon");
       const saveButton = childFragment.querySelector(".child-save-button");
       const closeButton = childFragment.querySelector(".child-close-button");
+      const selectInput = childFragment.querySelector(".tab-select-input");
+      const selectControl = childFragment.querySelector(".tab-select-control");
+      const isSaved = isTabSaved(tab);
 
       childFragment.querySelector(".child-tab-title").textContent = tab.title;
       linkButton.dataset.tabId = String(tab.id);
@@ -703,9 +1174,14 @@ function renderOpenTabs() {
       favicon.hidden = !tab.faviconUrl;
       saveButton.dataset.tabId = String(tab.id);
       closeButton.dataset.tabId = String(tab.id);
+      selectInput.dataset.tabId = String(tab.id);
+      selectInput.checked = state.selectedTabIds.has(tab.id);
+      selectInput.disabled = isSaved;
 
-      if (state.savedItems.some(item => item.url === normalizeUrl(tab.url))) {
+      if (isSaved) {
         saveButton.textContent = t("saved");
+        saveButton.disabled = true;
+        selectControl.classList.add("is-disabled");
       }
 
       childrenContainer.appendChild(childFragment);
@@ -718,14 +1194,132 @@ function renderOpenTabs() {
         : t("more", group.tabs.length - DEFAULT_VISIBLE_CHILDREN);
     }
 
-    elements.openTabsList.appendChild(fragment);
-  });
+    container.appendChild(fragment);
+}
+
+function renderWindowGroup(windowGroup) {
+  const section = document.createElement("section");
+  section.className = "window-group";
+
+  const header = document.createElement("div");
+  header.className = "window-group-head";
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "window-group-title-wrap";
+
+  const actions = document.createElement("div");
+  actions.className = "window-group-actions";
+  const isEditing = state.editingWindowId === windowGroup.id;
+
+  if (isEditing) {
+    const renameForm = document.createElement("form");
+    renameForm.className = "window-rename-form";
+    renameForm.dataset.windowId = String(windowGroup.id);
+
+    const nameInput = document.createElement("input");
+    nameInput.className = "window-rename-input";
+    nameInput.type = "text";
+    nameInput.name = "windowName";
+    nameInput.value = cleanText(state.windowNames[String(windowGroup.id)] || "");
+    nameInput.placeholder = t("windowNamePlaceholder");
+    nameInput.maxLength = 32;
+    renameForm.appendChild(nameInput);
+
+    const saveRenameButton = document.createElement("button");
+    saveRenameButton.className = "ghost-button window-rename-save";
+    saveRenameButton.type = "submit";
+    saveRenameButton.textContent = t("saveWindowName");
+    renameForm.appendChild(saveRenameButton);
+
+    const cancelRenameButton = document.createElement("button");
+    cancelRenameButton.className = "link-button window-rename-cancel";
+    cancelRenameButton.type = "button";
+    cancelRenameButton.dataset.windowId = String(windowGroup.id);
+    cancelRenameButton.textContent = t("cancelWindowName");
+    renameForm.appendChild(cancelRenameButton);
+
+    titleWrap.appendChild(renameForm);
+  } else {
+    const title = document.createElement("h3");
+    title.className = "window-group-title";
+    title.textContent = `${windowGroup.label} · ${t("windowTabs", windowGroup.tabs.length)}`;
+    titleWrap.appendChild(title);
+
+    if (windowGroup.isCurrent) {
+      const badge = document.createElement("span");
+      badge.className = "window-current-badge";
+      badge.textContent = t("currentWindow");
+      titleWrap.appendChild(badge);
+    }
+
+    const renameButton = document.createElement("button");
+    renameButton.className = "link-button window-rename-trigger";
+    renameButton.type = "button";
+    renameButton.dataset.windowId = String(windowGroup.id);
+    renameButton.textContent = t("renameWindow");
+    titleWrap.appendChild(renameButton);
+
+    const saveButton = document.createElement("button");
+    saveButton.className = "ghost-button save-group-button";
+    saveButton.type = "button";
+    saveButton.dataset.groupKey = windowGroup.key;
+    saveButton.textContent = t("saveGroup");
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "ghost-button close-group-button";
+    closeButton.type = "button";
+    closeButton.dataset.groupKey = windowGroup.key;
+    closeButton.textContent = t("closeGroup");
+
+    actions.appendChild(saveButton);
+    actions.appendChild(closeButton);
+  }
+
+  header.appendChild(titleWrap);
+  if (actions.childElementCount > 0) {
+    header.appendChild(actions);
+  }
+
+  section.appendChild(header);
+  renderSiteGroup({
+    key: windowGroup.key,
+    label: windowGroup.label,
+    tabs: windowGroup.tabs
+  }, section);
+  elements.openTabsList.appendChild(section);
+}
+
+function renderOpenTabs() {
+  elements.openTabsList.innerHTML = "";
+  state.renderedGroups.clear();
+  updateOpenTabGroups();
+  applyGroupMode(state.groupMode);
+  updateWindowFilterOptions();
+  updateStatsLine();
+  renderSelectionTray();
+  renderSaveComposer();
+
+  if (state.groupMode === "window") {
+    groupTabsByWindow(state.visibleTabs).forEach(renderWindowGroup);
+    return;
+  }
+
+  if (state.groupMode === "recent") {
+    renderSiteGroup({
+      key: "recent-tabs",
+      label: t("recentTabs"),
+      tabs: state.visibleTabs.slice().sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))
+    });
+    return;
+  }
+
+  state.groupedTabs.forEach(group => renderSiteGroup(group));
 }
 
 function renderSavedItems() {
   const filteredItems = getFilteredSavedItems();
   elements.savedList.innerHTML = "";
   elements.savedEmptyState.hidden = filteredItems.length > 0;
+  renderSavedBulkEditor();
 
   filteredItems
     .slice()
@@ -734,33 +1328,41 @@ function renderSavedItems() {
       const fragment = elements.savedItemTemplate.content.cloneNode(true);
       translateRoot(fragment);
       const card = fragment.querySelector(".saved-card");
-      const form = fragment.querySelector(".saved-form");
-      const statusSelect = fragment.querySelector(".saved-status");
-      const tagsInput = fragment.querySelector(".saved-tags");
-      const takeawayInput = fragment.querySelector(".saved-takeaway");
-      const sourceButton = fragment.querySelector(".saved-open-link");
+      const statusBadge = fragment.querySelector(".saved-status-badge");
       const titleButton = fragment.querySelector(".saved-title-button");
       const deleteButton = fragment.querySelector(".delete-link");
+      const selectInput = fragment.querySelector(".saved-select-input");
+      const takeawayInput = fragment.querySelector(".saved-takeaway-input");
+      const takeawayText = fragment.querySelector(".saved-takeaway-text");
+      const takeawayToggle = fragment.querySelector(".saved-takeaway-toggle");
+      const isEditingTakeaway = state.editingTakeawayId === item.id;
+      const isTakeawayExpanded = state.expandedTakeaways.has(item.id);
+      const hasLongTakeaway = cleanText(item.takeaway || "").length > 110;
 
       card.dataset.itemId = item.id;
-      sourceButton.textContent = item.domain;
-      fragment.querySelector(".saved-status-badge").textContent = getStatusLabel(item.status);
+      card.classList.toggle("is-selected", state.selectedSavedItemIds.has(item.id));
+      statusBadge.textContent = getStatusLabel(item.status);
       fragment.querySelector(".saved-title").textContent = item.title;
       const dateParts = formatDateParts(item.savedAt);
       fragment.querySelector(".saved-meta").innerHTML =
         `<span class="saved-date">${t("savedOn", dateParts.date)}</span><span class="saved-time">${dateParts.time}</span>`;
-      fragment.querySelector(".saved-takeaway-preview").textContent = item.takeaway || "";
-
-      statusSelect.value = item.status;
-      tagsInput.value = item.tags.join(", ");
       takeawayInput.value = item.takeaway || "";
+      takeawayInput.dataset.itemId = item.id;
+      takeawayInput.hidden = !isEditingTakeaway;
+      takeawayInput.classList.toggle("is-filled", Boolean(item.takeaway));
+      takeawayText.dataset.itemId = item.id;
+      takeawayText.textContent = cleanText(item.takeaway || "") || t("takeawayPlaceholder");
+      takeawayText.classList.toggle("is-empty", !cleanText(item.takeaway || ""));
+      takeawayText.classList.toggle("is-expanded", isTakeawayExpanded);
+      takeawayText.hidden = isEditingTakeaway;
+      takeawayToggle.dataset.itemId = item.id;
+      takeawayToggle.hidden = isEditingTakeaway || !hasLongTakeaway;
+      takeawayToggle.textContent = isTakeawayExpanded ? t("showLess") : t("showMore");
 
-      sourceButton.dataset.itemId = item.id;
       titleButton.dataset.itemId = item.id;
       deleteButton.dataset.itemId = item.id;
-      statusSelect.dataset.itemId = item.id;
-      tagsInput.dataset.itemId = item.id;
-      takeawayInput.dataset.itemId = item.id;
+      selectInput.dataset.itemId = item.id;
+      selectInput.checked = state.selectedSavedItemIds.has(item.id);
 
       elements.savedList.appendChild(fragment);
     });
@@ -777,15 +1379,16 @@ async function saveTab(tabId, options = {}) {
 
   const snapshot = await captureTabSnapshot(tabId);
   const learningFields = buildLearningFields(snapshot || {}, tab.domain);
+  const customTags = parseTags(options.tags || "");
   state.savedItems.unshift({
     id: crypto.randomUUID(),
     title: tab.title,
     url: normalizedUrl,
     domain: tab.domain,
     savedAt: Date.now(),
-    tags: snapshot ? collectSuggestedTags(snapshot, tab.domain) : [tab.domain],
+    tags: customTags.length ? customTags : snapshot ? collectSuggestedTags(snapshot, tab.domain) : [tab.domain],
     takeaway: learningFields.takeaway,
-    status: "to_learn"
+    status: options.status || "to_learn"
   });
 
   await persistSavedItems();
@@ -800,36 +1403,41 @@ async function saveTab(tabId, options = {}) {
   return true;
 }
 
-async function saveGroup(groupKey) {
-  const group = state.groupedTabs.find(entry => entry.key === groupKey);
-  if (!group) return;
+async function saveTabsWithMetadata(tabIds, metadata = {}) {
   let savedCount = 0;
-  for (const tab of group.tabs) {
-    const saved = await saveTab(tab.id, { playSound: false, render: false });
+  const nextTabIds = getUnsavedTabIds(tabIds);
+  if (nextTabIds.length === 0) {
+    closeSaveComposer();
+    renderOpenTabs();
+    return;
+  }
+
+  for (const tabId of nextTabIds) {
+    const saved = await saveTab(tabId, {
+      status: metadata.status,
+      tags: metadata.tags,
+      playSound: false,
+      render: false
+    });
     if (saved) savedCount += 1;
   }
+
   if (savedCount > 0) {
     await playSaveSound();
+    state.selectedTabIds = new Set(
+      [...state.selectedTabIds].filter(tabId => !nextTabIds.includes(tabId))
+    );
+    closeSaveComposer({ keepSelection: true });
     updateTagFilterOptions();
     renderOpenTabs();
     renderSavedItems();
   }
 }
 
-async function saveAllVisibleTabs() {
-  let savedCount = 0;
-  for (const group of state.groupedTabs) {
-    for (const tab of group.tabs) {
-      const saved = await saveTab(tab.id, { playSound: false, render: false });
-      if (saved) savedCount += 1;
-    }
-  }
-  if (savedCount > 0) {
-    await playSaveSound();
-    updateTagFilterOptions();
-    renderOpenTabs();
-    renderSavedItems();
-  }
+async function saveGroup(groupKey) {
+  const group = state.renderedGroups.get(groupKey) || state.groupedTabs.find(entry => entry.key === groupKey);
+  if (!group) return;
+  openSaveComposer(group.tabs.map(tab => tab.id));
 }
 
 async function updateSavedItem(itemId, updates) {
@@ -841,6 +1449,31 @@ async function updateSavedItem(itemId, updates) {
   updateTagFilterOptions();
   renderSavedItems();
   renderOpenTabs();
+}
+
+async function updateSelectedSavedItems() {
+  const itemIds = [...state.selectedSavedItemIds];
+  if (itemIds.length === 0) return;
+
+  const nextStatus = elements.savedBulkStatus.value;
+  const nextTags = parseTags(elements.savedBulkTags.value);
+
+  state.savedItems.forEach(item => {
+    if (!state.selectedSavedItemIds.has(item.id)) return;
+    if (nextStatus) {
+      item.status = nextStatus;
+    }
+    if (nextTags.length) {
+      item.tags = nextTags;
+    }
+  });
+
+  await persistSavedItems();
+  state.selectedSavedItemIds.clear();
+  elements.savedBulkStatus.value = "";
+  elements.savedBulkTags.value = "";
+  updateTagFilterOptions();
+  renderSavedItems();
 }
 
 async function removeSavedItem(itemId) {
@@ -873,12 +1506,12 @@ async function focusTab(tabId) {
 }
 
 async function closeGroup(groupKey) {
-  const group = state.groupedTabs.find(entry => entry.key === groupKey);
+  const group = state.renderedGroups.get(groupKey) || state.groupedTabs.find(entry => entry.key === groupKey);
   if (!group) return;
   if (!hasChromeApi("tabs")) {
     const tabIds = new Set(group.tabs.map(tab => tab.id));
     state.openTabs = state.openTabs.filter(tab => !tabIds.has(tab.id));
-    state.groupedTabs = groupTabsBySite(state.openTabs);
+    updateOpenTabGroups();
     await playCloseSound();
     renderOpenTabs();
     return;
@@ -892,7 +1525,7 @@ async function closeGroup(groupKey) {
 async function closeTab(tabId) {
   if (!hasChromeApi("tabs")) {
     state.openTabs = state.openTabs.filter(tab => tab.id !== tabId);
-    state.groupedTabs = groupTabsBySite(state.openTabs);
+    updateOpenTabGroups();
     await playCloseSound();
     renderOpenTabs();
     return;
@@ -913,6 +1546,11 @@ function toggleGroupExpanded(groupKey) {
 }
 
 function bindEvents() {
+  elements.browserLauncher.addEventListener("submit", async event => {
+    event.preventDefault();
+    await openBrowserQuery(elements.browserLauncherInput.value);
+  });
+
   elements.languageToggle.addEventListener("click", event => {
     const button = event.target.closest(".language-option");
     if (!button) return;
@@ -922,13 +1560,48 @@ function bindEvents() {
     renderSavedItems();
   });
 
-  elements.refreshTabsButton.addEventListener("click", async () => {
-    await loadOpenTabs();
+  elements.groupModeToggle.addEventListener("click", event => {
+    const button = event.target.closest(".group-mode-option");
+    if (!button) return;
+    applyGroupMode(button.dataset.groupMode);
     renderOpenTabs();
   });
 
-  elements.saveAllTabsButton.addEventListener("click", async () => {
-    await saveAllVisibleTabs();
+  elements.windowFilter.addEventListener("change", event => {
+    state.windowFilter = event.target.value;
+    localStorage.setItem(WINDOW_FILTER_KEY, state.windowFilter);
+    renderOpenTabs();
+  });
+
+  elements.refreshTabsButton.addEventListener("click", async () => {
+    await refreshOpenTabs();
+  });
+
+  elements.saveSelectedButton.addEventListener("click", () => {
+    openSaveComposer([...state.selectedTabIds]);
+  });
+
+  elements.clearSelectionButton.addEventListener("click", () => {
+    state.selectedTabIds.clear();
+    closeSaveComposer({ keepSelection: false });
+    renderOpenTabs();
+  });
+
+  elements.clearSavedSelectionButton.addEventListener("click", () => {
+    state.selectedSavedItemIds.clear();
+    renderSavedItems();
+  });
+
+  elements.cancelSaveComposerButton.addEventListener("click", () => {
+    closeSaveComposer();
+  });
+
+  elements.saveComposerStatus.addEventListener("change", event => {
+    state.saveComposer.status = event.target.value;
+  });
+
+  elements.saveComposerTags.addEventListener("input", event => {
+    state.saveComposer.tags = event.target.value;
   });
 
   elements.searchInput.addEventListener("input", event => {
@@ -946,6 +1619,11 @@ function bindEvents() {
     renderSavedItems();
   });
 
+  elements.savedBulkEditor.addEventListener("submit", async event => {
+    event.preventDefault();
+    await updateSelectedSavedItems();
+  });
+
   elements.openTabsList.addEventListener("click", async event => {
     const saveButton = event.target.closest(".child-save-button");
     const openButton = event.target.closest(".child-tab-link");
@@ -953,35 +1631,85 @@ function bindEvents() {
     const saveGroupButton = event.target.closest(".save-group-button");
     const closeGroupButton = event.target.closest(".close-group-button");
     const moreButton = event.target.closest(".site-more");
+    const renameButton = event.target.closest(".window-rename-trigger");
+    const cancelRenameButton = event.target.closest(".window-rename-cancel");
 
-    if (saveButton) await saveTab(Number(saveButton.dataset.tabId));
+    if (saveButton) openSaveComposer([Number(saveButton.dataset.tabId)]);
     if (openButton) await focusTab(Number(openButton.dataset.tabId));
     if (closeButton) await closeTab(Number(closeButton.dataset.tabId));
     if (saveGroupButton) await saveGroup(saveGroupButton.dataset.groupKey);
     if (closeGroupButton) await closeGroup(closeGroupButton.dataset.groupKey);
     if (moreButton) toggleGroupExpanded(moreButton.dataset.groupKey);
+    if (renameButton) startWindowRename(Number(renameButton.dataset.windowId));
+    if (cancelRenameButton) cancelWindowRename();
+  });
+
+  elements.openTabsList.addEventListener("change", event => {
+    const input = event.target.closest(".tab-select-input");
+    if (!input) return;
+    toggleTabSelection(Number(input.dataset.tabId));
+  });
+
+  elements.openTabsList.addEventListener("submit", async event => {
+    const renameForm = event.target.closest(".window-rename-form");
+    if (!renameForm) return;
+    event.preventDefault();
+    const nameInput = renameForm.querySelector(".window-rename-input");
+    await saveWindowRename(Number(renameForm.dataset.windowId), nameInput?.value || "");
+  });
+
+  elements.saveComposer.addEventListener("submit", async event => {
+    event.preventDefault();
+    await saveTabsWithMetadata(state.saveComposer.tabIds, {
+      status: state.saveComposer.status,
+      tags: state.saveComposer.tags
+    });
   });
 
   elements.savedList.addEventListener("click", async event => {
-    const openButton = event.target.closest(".saved-title-button, .saved-open-link");
+    const openButton = event.target.closest(".saved-title-button");
     const deleteButton = event.target.closest(".delete-link");
+    const card = event.target.closest(".saved-card");
+    const selectInput = event.target.closest(".saved-select-input");
+    const takeawayInput = event.target.closest(".saved-takeaway-input");
+    const takeawayText = event.target.closest(".saved-takeaway-text");
+    const takeawayToggle = event.target.closest(".saved-takeaway-toggle");
 
     if (openButton) await openSavedItem(openButton.dataset.itemId);
     if (deleteButton) await removeSavedItem(deleteButton.dataset.itemId);
+    if (takeawayText) {
+      state.editingTakeawayId = takeawayText.dataset.itemId;
+      renderSavedItems();
+      window.requestAnimationFrame(() => {
+        const input = elements.savedList.querySelector(`.saved-takeaway-input[data-item-id="${CSS.escape(state.editingTakeawayId)}"]`);
+        input?.focus();
+        input?.select();
+      });
+      return;
+    }
+    if (takeawayToggle) {
+      const itemId = takeawayToggle.dataset.itemId;
+      if (state.expandedTakeaways.has(itemId)) {
+        state.expandedTakeaways.delete(itemId);
+      } else {
+        state.expandedTakeaways.add(itemId);
+      }
+      renderSavedItems();
+      return;
+    }
+    if (selectInput) return;
+    if (takeawayInput) return;
+    if (card && !openButton && !deleteButton) {
+      toggleSavedItemSelection(card.dataset.itemId);
+    }
   });
 
   elements.savedList.addEventListener("change", async event => {
     const target = event.target;
     const itemId = target.dataset.itemId;
     if (!itemId) return;
-
-    if (target.matches(".saved-status")) {
-      await updateSavedItem(itemId, { status: target.value });
-    }
-
-    if (target.matches(".saved-tags")) {
-      const tags = target.value.split(",").map(tag => tag.trim()).filter(Boolean);
-      await updateSavedItem(itemId, { tags });
+    if (target.matches(".saved-select-input")) {
+      toggleSavedItemSelection(itemId);
     }
   });
 
@@ -990,14 +1718,19 @@ function bindEvents() {
     const itemId = target.dataset.itemId;
     if (!itemId) return;
 
-    if (target.matches(".saved-takeaway")) {
-      await updateSavedItem(itemId, { takeaway: target.value.trim() });
+    if (target.matches(".saved-takeaway-input")) {
+      const takeaway = target.value.trim();
+      target.classList.toggle("is-filled", Boolean(takeaway));
+      state.editingTakeawayId = null;
+      await updateSavedItem(itemId, { takeaway });
     }
   }, true);
 }
 
 async function initialize() {
   initializeLanguage();
+  initializeGroupMode();
+  await loadWindowNames();
   await loadSavedItems();
   await loadOpenTabs();
   updateTagFilterOptions();
@@ -1005,6 +1738,7 @@ async function initialize() {
   renderSavedItems();
   initializeResizableLayout();
   bindEvents();
+  bindTabSyncEvents();
 }
 
 initialize();
