@@ -131,3 +131,20 @@ Study Shelf 是一个基于 Manifest V3 的 Chrome 扩展，主要在浏览器�
 Study Shelf stores saved pages and learning notes locally in Chrome storage. It does not sell user data, does not display ads, and does not upload the user's learning list to a server.
 
 Privacy policy: https://gist.github.com/feliciaxwf-png/fd31b7fd938d43a8e62cfd53fb71aec7
+
+## Changelog
+
+2026.05.03 23:20
+Study Shelf v0.2.0 focuses on making tab organization calmer, clearer, and more useful for learning.
+
+What’s new:
+- Added flexible tab grouping by recently viewed, website, and Chrome window.
+- Added custom window names to help users organize tabs by learning, work, research, or other contexts.
+- Improved the learning library with simpler study cards focused on learning status.
+- Kept tags available for filtering and bulk management while reducing repeated information on each card.
+- Added bulk selection and bulk status/tag editing for saved study pages.
+- Improved the top search/open box with clearer wording: “Search Google or enter a URL.”
+- Improved the resizable two-panel layout for smoother organizing and studying.
+- Refined bilingual support for English and Chinese users.
+- Updated the extension version to 0.2.0.
+
