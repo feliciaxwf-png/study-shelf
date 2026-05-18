@@ -18,16 +18,19 @@
       </div>
       <div class="hero-tools">
         <form class="browser-launcher" id="browserLauncher">
+          <p class="browser-launcher-hint" data-i18n="browserLauncherHint">Use this box to search with your default search provider or open a URL in a separate tab.</p>
           <div class="browser-launcher-row">
             <span class="browser-launcher-icon" aria-hidden="true"></span>
-            <input id="browserLauncherInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search Google or enter a URL" data-i18n-placeholder="browserLauncherPlaceholder">
+            <input id="browserLauncherInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search or enter a URL" data-i18n-placeholder="browserLauncherPlaceholder">
             <button class="ghost-button browser-launcher-button" type="submit" data-i18n="go">Go</button>
           </div>
         </form>
-        <div class="hero-stats-line" id="heroStatsLine">0 open tabs · 0 saved · 0 learning</div>
-        <div class="language-toggle" id="languageToggle" aria-label="Language">
-          <button type="button" class="language-option" data-lang="en">EN</button>
-          <button type="button" class="language-option" data-lang="zh">中文</button>
+        <div class="hero-meta-row">
+          <div class="hero-stats-line" id="heroStatsLine">0 open tabs · 0 saved · 0 learning</div>
+          <div class="language-toggle" id="languageToggle" aria-label="Language">
+            <button type="button" class="language-option" data-lang="en">EN</button>
+            <button type="button" class="language-option" data-lang="zh">中文</button>
+          </div>
         </div>
       </div>
     </header>
@@ -59,6 +62,7 @@
             </div>
             <div class="selection-tray-actions">
               <button class="ghost-button" id="saveSelectedButton" type="button" data-i18n="saveSelected">Save selected</button>
+              <button class="ghost-button" id="closeSelectedButton" type="button" data-i18n="closeSelected">Close selected</button>
               <button class="link-button" id="clearSelectionButton" type="button" data-i18n="clearSelection">Clear</button>
             </div>
           </div>
@@ -79,10 +83,14 @@
                   <option value="learned" data-i18n="learned">Learned</option>
                 </select>
               </label>
-              <label class="save-composer-field save-composer-tags-field">
-                <span data-i18n="tags">Tags</span>
-                <input id="saveComposerTags" type="text" placeholder="AI tools, Design, Research" data-i18n-placeholder="saveComposerTagsPlaceholder">
-              </label>
+              <div class="save-composer-field save-composer-tags-field">
+                <span id="saveComposerTagsLabel" data-i18n="tags">Tags</span>
+                <div class="tag-picker" id="saveComposerTagPicker">
+                  <input id="saveComposerTags" type="text" aria-labelledby="saveComposerTagsLabel" placeholder="AI tools, Design, Research" data-i18n-placeholder="saveComposerTagsPlaceholder">
+                  <button class="tag-picker-toggle" id="saveComposerTagToggle" type="button" aria-label="Show saved tags" aria-expanded="false"></button>
+                  <div class="tag-picker-menu" id="saveComposerTagMenu" hidden></div>
+                </div>
+              </div>
               <button class="ghost-button save-composer-submit" type="submit" data-i18n="saveNow">Save now</button>
             </div>
           </form>

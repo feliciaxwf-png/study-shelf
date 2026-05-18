@@ -50,13 +50,17 @@ const translations = {
     windowNamePlaceholder: "Name this window",
     allWindows: "All windows",
     currentWindow: "Current window",
-    browserLauncherPlaceholder: "Search Google or enter a URL",
+    browserLauncherPlaceholder: "Search or enter a URL",
+    browserLauncherHint: "Use this box to search with your default search provider or open a URL in a separate tab.",
+    browserLauncherSearchUnavailable: "Search is available after Study Shelf is loaded as a Chrome extension.",
     go: "Go",
     refresh: "Refresh",
     selectionHint: "Choose tabs, then save them with tags and a status.",
     selectedCount: count => `${count} selected`,
     clearSelection: "Clear",
+    cancel: "Cancel",
     saveSelected: "Save selected",
+    closeSelected: "Close selected",
     saveToLibrary: "Save to library",
     saveComposerSummary: count => `${count} tab${count === 1 ? "" : "s"} ready to save`,
     saveComposerTagsPlaceholder: "AI tools, Design, Research",
@@ -116,13 +120,17 @@ const translations = {
     windowNamePlaceholder: "给这个窗口命名",
     allWindows: "全部窗口",
     currentWindow: "当前窗口",
-    browserLauncherPlaceholder: "用 Google 搜索或输入网址",
+    browserLauncherPlaceholder: "搜索或输入网址",
+    browserLauncherHint: "用这个输入框通过你的默认搜索引擎搜索，或在新标签中打开网址。",
+    browserLauncherSearchUnavailable: "将 Study Shelf 加载为 Chrome 扩展后即可使用搜索。",
     go: "打开",
     refresh: "刷新",
     selectionHint: "选中网页后，可以一次性设置标签和状态再保存。",
     selectedCount: count => `已选 ${count} 个`,
     clearSelection: "清空",
+    cancel: "取消",
     saveSelected: "保存所选",
+    closeSelected: "关闭所选",
     saveToLibrary: "保存到学习清单",
     saveComposerSummary: count => `${count} 个网页准备保存`,
     saveComposerTagsPlaceholder: "AI 工具, 设计, 调研",
@@ -191,10 +199,14 @@ const elements = {
   selectionTray: document.querySelector("#selectionTray"),
   selectionCount: document.querySelector("#selectionCount"),
   saveSelectedButton: document.querySelector("#saveSelectedButton"),
+  closeSelectedButton: document.querySelector("#closeSelectedButton"),
   clearSelectionButton: document.querySelector("#clearSelectionButton"),
   saveComposer: document.querySelector("#saveComposer"),
   saveComposerSummary: document.querySelector("#saveComposerSummary"),
   saveComposerStatus: document.querySelector("#saveComposerStatus"),
+  saveComposerTagPicker: document.querySelector("#saveComposerTagPicker"),
+  saveComposerTagToggle: document.querySelector("#saveComposerTagToggle"),
+  saveComposerTagMenu: document.querySelector("#saveComposerTagMenu"),
   saveComposerTags: document.querySelector("#saveComposerTags"),
   cancelSaveComposerButton: document.querySelector("#cancelSaveComposerButton"),
   heroStatsLine: document.querySelector("#heroStatsLine"),
@@ -222,7 +234,7 @@ const demoTabs = [
     lastAccessed: Date.now() - 1000 * 60 * 15,
     title: "OpenAI Platform Docs",
     url: "https://platform.openai.com/docs",
-    domain: "platform.openai.com",
+    domain: "openai.com",
     faviconUrl: getFaviconUrl("https://platform.openai.com/docs")
   },
   {
@@ -231,7 +243,7 @@ const demoTabs = [
     lastAccessed: Date.now() - 1000 * 60 * 35,
     title: "Prompt engineering guide",
     url: "https://platform.openai.com/docs/guides/prompt-engineering",
-    domain: "platform.openai.com",
+    domain: "openai.com",
     faviconUrl: getFaviconUrl("https://platform.openai.com/docs/guides/prompt-engineering")
   },
   {
@@ -240,7 +252,7 @@ const demoTabs = [
     lastAccessed: Date.now() - 1000 * 60 * 6,
     title: "即梦AI - 一站式AI创作平台",
     url: "https://jimeng.jianying.com",
-    domain: "jimeng.jianying.com",
+    domain: "jianying.com",
     faviconUrl: getFaviconUrl("https://jimeng.jianying.com")
   }
 ];
@@ -598,12 +610,59 @@ function normalizeUrl(url) {
   }
 }
 
-function getDomain(url) {
+const COMMON_SECOND_LEVEL_SUFFIXES = new Set([
+  "ac", "biz", "co", "com", "edu", "gov", "info", "net", "org"
+]);
+
+const KNOWN_MULTI_PART_PUBLIC_SUFFIXES = new Set([
+  "ac.cn", "ac.jp", "ac.kr", "ac.uk",
+  "co.id", "co.il", "co.in", "co.jp", "co.kr", "co.nz", "co.th", "co.uk", "co.za",
+  "com.ar", "com.au", "com.br", "com.cn", "com.hk", "com.mx", "com.my", "com.ph", "com.sg", "com.tr", "com.tw",
+  "edu.au", "edu.cn", "edu.hk", "edu.sg", "edu.tw",
+  "gov.au", "gov.cn", "gov.hk", "gov.sg", "gov.uk",
+  "net.au", "net.cn", "net.hk", "net.nz", "net.sg", "net.tw",
+  "org.au", "org.cn", "org.hk", "org.nz", "org.sg", "org.tw", "org.uk"
+]);
+
+function getHostname(url) {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
   } catch {
-    return "Unknown";
+    return "";
   }
+}
+
+function isIpAddress(hostname) {
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.includes(":");
+}
+
+function getRegistrableDomain(hostname) {
+  const cleanHostname = cleanText(hostname).toLowerCase().replace(/^www\./, "");
+  if (!cleanHostname || cleanHostname === "localhost" || isIpAddress(cleanHostname)) {
+    return cleanHostname;
+  }
+
+  const parts = cleanHostname.split(".").filter(Boolean);
+  if (parts.length <= 2) {
+    return cleanHostname;
+  }
+
+  const lastTwoParts = parts.slice(-2).join(".");
+  const lastPart = parts.at(-1);
+  const secondLastPart = parts.at(-2);
+
+  if (
+    KNOWN_MULTI_PART_PUBLIC_SUFFIXES.has(lastTwoParts) ||
+    (lastPart.length === 2 && COMMON_SECOND_LEVEL_SUFFIXES.has(secondLastPart))
+  ) {
+    return parts.slice(-3).join(".");
+  }
+
+  return lastTwoParts;
+}
+
+function getDomain(url) {
+  return getRegistrableDomain(getHostname(url)) || "Unknown";
 }
 
 function getSiteKey(url) {
@@ -612,7 +671,7 @@ function getSiteKey(url) {
     if (parsed.protocol === "file:") {
       return "local-files";
     }
-    return parsed.hostname.replace(/^www\./, "");
+    return getRegistrableDomain(parsed.hostname);
   } catch {
     return "unknown";
   }
@@ -816,28 +875,41 @@ function getPreviewText(text, fallback) {
   return clean || fallback;
 }
 
-function buildSearchUrl(value) {
+function buildBrowserQuery(value) {
   const query = cleanText(value);
-  if (!query) return "";
+  if (!query) return null;
 
   const hasProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(query);
   const looksLikeDomain = /^[^\s]+\.[^\s]{2,}(\/.*)?$/i.test(query);
 
-  if (hasProtocol) return query;
-  if (looksLikeDomain) return `https://${query}`;
-  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  if (hasProtocol) return { type: "url", value: query };
+  if (looksLikeDomain) return { type: "url", value: `https://${query}` };
+  return { type: "search", value: query };
 }
 
 async function openBrowserQuery(value) {
-  const url = buildSearchUrl(value);
-  if (!url) return;
+  const query = buildBrowserQuery(value);
+  if (!query) return;
 
-  if (!hasChromeApi("tabs")) {
-    window.open(url, "_blank", "noopener");
+  if (query.type === "url") {
+    if (!hasChromeApi("tabs")) {
+      window.open(query.value, "_blank", "noopener");
+      return;
+    }
+
+    await chrome.tabs.create({ url: query.value });
     return;
   }
 
-  await chrome.tabs.create({ url });
+  if (hasChromeApi("search") && chrome.search?.query) {
+    await chrome.search.query({
+      text: query.value,
+      disposition: "NEW_TAB"
+    });
+    return;
+  }
+
+  window.alert(t("browserLauncherSearchUnavailable"));
 }
 
 async function refreshOpenTabs() {
@@ -919,6 +991,7 @@ async function loadSavedItems() {
   const savedItems = await storageGet(STORAGE_KEY);
   state.savedItems = (savedItems || []).map(item => ({
     ...item,
+    domain: getDomain(item.url || item.domain || ""),
     status:
       item.status === "unread" ? "to_learn" :
       item.status === "reading" ? "learning" :
@@ -995,7 +1068,7 @@ function getFilteredSavedItems() {
 
 function updateTagFilterOptions() {
   const currentValue = state.tagFilter;
-  const tags = [...new Set(state.savedItems.flatMap(item => item.tags))].sort((a, b) => a.localeCompare(b));
+  const tags = getSavedTags();
 
   elements.tagFilter.innerHTML = "";
   const allOption = document.createElement("option");
@@ -1012,6 +1085,41 @@ function updateTagFilterOptions() {
 
   elements.tagFilter.value = tags.includes(currentValue) || currentValue === "all" ? currentValue : "all";
   state.tagFilter = elements.tagFilter.value;
+}
+
+function getSavedTags() {
+  return [...new Set(state.savedItems.flatMap(item => item.tags))]
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function setSaveComposerTagMenuOpen(isOpen) {
+  const hasTags = getSavedTags().length > 0;
+  const shouldOpen = Boolean(isOpen && hasTags);
+  elements.saveComposerTagMenu.hidden = !shouldOpen;
+  elements.saveComposerTagPicker.classList.toggle("is-open", shouldOpen);
+  elements.saveComposerTagToggle.setAttribute("aria-expanded", String(shouldOpen));
+}
+
+function updateSaveComposerTagSuggestions() {
+  const tags = getSavedTags();
+
+  elements.saveComposerTagMenu.innerHTML = "";
+  elements.saveComposerTagToggle.hidden = tags.length === 0;
+  elements.saveComposerTagPicker.classList.toggle("has-saved-tags", tags.length > 0);
+
+  tags.forEach(tag => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "tag-picker-option";
+    option.dataset.tag = tag;
+    option.textContent = tag;
+    elements.saveComposerTagMenu.appendChild(option);
+  });
+
+  if (tags.length === 0) {
+    setSaveComposerTagMenuOpen(false);
+  }
 }
 
 function updateWindowFilterOptions() {
@@ -1057,6 +1165,7 @@ function renderSaveComposer() {
   }
 
   elements.saveComposerStatus.value = state.saveComposer.status;
+  updateSaveComposerTagSuggestions();
   elements.saveComposerTags.value = state.saveComposer.tags;
   elements.saveComposerSummary.textContent = t("saveComposerSummary", state.saveComposer.tabIds.length);
 }
@@ -1536,6 +1645,28 @@ async function closeTab(tabId) {
   renderOpenTabs();
 }
 
+async function closeSelectedTabs() {
+  const tabIds = [...state.selectedTabIds];
+  if (tabIds.length === 0) return;
+
+  closeSaveComposer({ keepSelection: false });
+  state.selectedTabIds.clear();
+
+  if (!hasChromeApi("tabs")) {
+    const selectedTabIds = new Set(tabIds);
+    state.openTabs = state.openTabs.filter(tab => !selectedTabIds.has(tab.id));
+    updateOpenTabGroups();
+    await playCloseSound();
+    renderOpenTabs();
+    return;
+  }
+
+  await chrome.tabs.remove(tabIds);
+  await playCloseSound();
+  await loadOpenTabs();
+  renderOpenTabs();
+}
+
 function toggleGroupExpanded(groupKey) {
   if (state.expandedGroups.has(groupKey)) {
     state.expandedGroups.delete(groupKey);
@@ -1581,6 +1712,10 @@ function bindEvents() {
     openSaveComposer([...state.selectedTabIds]);
   });
 
+  elements.closeSelectedButton.addEventListener("click", async () => {
+    await closeSelectedTabs();
+  });
+
   elements.clearSelectionButton.addEventListener("click", () => {
     state.selectedTabIds.clear();
     closeSaveComposer({ keepSelection: false });
@@ -1600,8 +1735,27 @@ function bindEvents() {
     state.saveComposer.status = event.target.value;
   });
 
+  elements.saveComposerTagToggle.addEventListener("click", () => {
+    setSaveComposerTagMenuOpen(elements.saveComposerTagMenu.hidden);
+  });
+
+  elements.saveComposerTagMenu.addEventListener("click", event => {
+    const option = event.target.closest(".tag-picker-option");
+    if (!option) return;
+    state.saveComposer.tags = option.dataset.tag;
+    elements.saveComposerTags.value = option.dataset.tag;
+    setSaveComposerTagMenuOpen(false);
+    elements.saveComposerTags.focus();
+  });
+
   elements.saveComposerTags.addEventListener("input", event => {
     state.saveComposer.tags = event.target.value;
+  });
+
+  document.addEventListener("click", event => {
+    if (!elements.saveComposerTagPicker.contains(event.target)) {
+      setSaveComposerTagMenuOpen(false);
+    }
   });
 
   elements.searchInput.addEventListener("input", event => {

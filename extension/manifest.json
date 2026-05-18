@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Study Shelf",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "A learning-focused new tab dashboard for saving, tagging, and revisiting study pages.",
-  "permissions": ["tabs", "storage", "scripting"],
+  "permissions": ["tabs", "storage", "scripting", "search"],
   "host_permissions": ["<all_urls>"],
   "chrome_url_overrides": {
     "newtab": "index.html"
