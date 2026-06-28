@@ -1094,6 +1094,14 @@ body.is-layout-resizing * {
   flex-wrap: wrap;
 }
 
+.saved-bulk-copy {
+  min-width: 220px;
+}
+
+.saved-bulk-fields {
+  justify-content: flex-end;
+}
+
 .saved-bulk-count {
   font-size: 10px;
   font-weight: 800;
@@ -1103,6 +1111,34 @@ body.is-layout-resizing * {
 .saved-bulk-hint {
   font-size: 10px;
   color: rgba(111, 99, 85, 0.8);
+}
+
+.saved-bulk-select-all {
+  padding: 5px 10px;
+  background: rgba(47, 111, 237, 0.10);
+  color: rgba(47, 111, 237, 0.88);
+  border: 1px solid rgba(47, 111, 237, 0.14);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 750;
+}
+
+.saved-bulk-action {
+  min-width: 58px;
+  white-space: nowrap;
+}
+
+.saved-bulk-apply {
+  min-width: 58px;
+}
+
+.saved-bulk-remove {
+  background: rgba(215, 80, 80, 0.10);
+  color: rgba(173, 55, 55, 0.86);
+}
+
+.panel-library .saved-bulk-remove {
+  background: rgba(215, 80, 80, 0.10);
+  color: rgba(173, 55, 55, 0.86);
 }
 
 .saved-meta,
@@ -1309,6 +1345,7 @@ body.is-layout-resizing * {
 button:disabled {
   cursor: default;
   transform: none !important;
+  opacity: 0.52;
 }
 
 .child-save-button:disabled {

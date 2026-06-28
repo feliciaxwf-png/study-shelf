@@ -131,8 +131,9 @@
         <form class="saved-bulk-editor" id="savedBulkEditor" hidden>
           <div class="saved-bulk-copy">
             <span class="saved-bulk-count" id="savedBulkCount">0 selected</span>
+            <button class="ghost-button saved-bulk-select-all" id="selectAllSavedButton" type="button" data-i18n="selectAllVisible">Select all</button>
             <span class="selection-dot" aria-hidden="true"></span>
-            <span class="saved-bulk-hint" data-i18n="savedBulkHint">Update status or tags for selected study notes.</span>
+            <span class="saved-bulk-hint" data-i18n="savedBulkHint">Open, remove, or update status and tags for selected study notes.</span>
           </div>
           <div class="saved-bulk-fields">
             <label class="saved-bulk-field">
@@ -148,8 +149,10 @@
               <span data-i18n="tags">Tags</span>
               <input id="savedBulkTags" type="text" placeholder="AI tools, Design, Research" data-i18n-placeholder="saveComposerTagsPlaceholder">
             </label>
+            <button class="ghost-button saved-bulk-action" id="openSelectedSavedButton" type="button" data-i18n="openSelected">Open</button>
+            <button class="ghost-button saved-bulk-action saved-bulk-remove" id="removeSelectedSavedButton" type="button" data-i18n="removeSelected">Remove</button>
             <button class="ghost-button saved-bulk-apply" type="submit" data-i18n="applyChanges">Apply</button>
-            <button class="link-button" id="clearSavedSelectionButton" type="button" data-i18n="clearSelection">Clear</button>
+            <button class="link-button" id="clearSavedSelectionButton" type="button" data-i18n="cancelSelection">Cancel</button>
           </div>
         </form>
 

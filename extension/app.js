@@ -70,7 +70,11 @@ const translations = {
     search: "Search",
     searchSavedPages: "Search saved pages",
     searchPlaceholder: "Title, tag, takeaway",
-    savedBulkHint: "Update status or tags for selected study notes.",
+    savedBulkHint: "Open, remove, or update status and tags for selected study notes.",
+    selectAllVisible: "Select all",
+    openSelected: "Open",
+    removeSelected: "Remove",
+    cancelSelection: "Cancel",
     keepCurrentStatus: "Keep current",
     applyChanges: "Apply",
     status: "Status",
@@ -140,7 +144,11 @@ const translations = {
     search: "搜索",
     searchSavedPages: "搜索已保存网页",
     searchPlaceholder: "标题、标签、关键收获",
-    savedBulkHint: "给选中的学习纸条统一修改状态或标签。",
+    savedBulkHint: "可打开、移除，或统一修改所选学习纸条的状态和标签。",
+    selectAllVisible: "全选当前",
+    openSelected: "打开",
+    removeSelected: "移除",
+    cancelSelection: "取消",
     keepCurrentStatus: "保持原样",
     applyChanges: "应用",
     status: "状态",
@@ -189,6 +197,9 @@ const elements = {
   savedBulkCount: document.querySelector("#savedBulkCount"),
   savedBulkStatus: document.querySelector("#savedBulkStatus"),
   savedBulkTags: document.querySelector("#savedBulkTags"),
+  selectAllSavedButton: document.querySelector("#selectAllSavedButton"),
+  openSelectedSavedButton: document.querySelector("#openSelectedSavedButton"),
+  removeSelectedSavedButton: document.querySelector("#removeSelectedSavedButton"),
   clearSavedSelectionButton: document.querySelector("#clearSavedSelectionButton"),
   browserLauncher: document.querySelector("#browserLauncher"),
   browserLauncherInput: document.querySelector("#browserLauncherInput"),
@@ -1066,6 +1077,12 @@ function getFilteredSavedItems() {
   });
 }
 
+function getVisibleSavedItems() {
+  return getFilteredSavedItems()
+    .slice()
+    .sort((a, b) => b.savedAt - a.savedAt);
+}
+
 function updateTagFilterOptions() {
   const currentValue = state.tagFilter;
   const tags = getSavedTags();
@@ -1182,10 +1199,19 @@ function renderSavedBulkEditor() {
   const selectedCount = state.selectedSavedItemIds.size;
   elements.savedBulkEditor.hidden = selectedCount === 0;
   elements.savedBulkCount.textContent = t("selectedCount", selectedCount);
+  elements.selectAllSavedButton.disabled = getVisibleSavedItems().length === 0;
+  elements.openSelectedSavedButton.disabled = selectedCount === 0;
+  elements.removeSelectedSavedButton.disabled = selectedCount === 0;
   if (selectedCount === 0) {
     elements.savedBulkStatus.value = "";
     elements.savedBulkTags.value = "";
   }
+}
+
+function selectAllVisibleSavedItems() {
+  const visibleIds = getVisibleSavedItems().map(item => item.id);
+  visibleIds.forEach(itemId => state.selectedSavedItemIds.add(itemId));
+  renderSavedItems();
 }
 
 function toggleSavedItemSelection(itemId) {
@@ -1425,14 +1451,12 @@ function renderOpenTabs() {
 }
 
 function renderSavedItems() {
-  const filteredItems = getFilteredSavedItems();
+  const filteredItems = getVisibleSavedItems();
   elements.savedList.innerHTML = "";
   elements.savedEmptyState.hidden = filteredItems.length > 0;
   renderSavedBulkEditor();
 
   filteredItems
-    .slice()
-    .sort((a, b) => b.savedAt - a.savedAt)
     .forEach(item => {
       const fragment = elements.savedItemTemplate.content.cloneNode(true);
       translateRoot(fragment);
@@ -1583,6 +1607,34 @@ async function updateSelectedSavedItems() {
   elements.savedBulkTags.value = "";
   updateTagFilterOptions();
   renderSavedItems();
+}
+
+async function openSelectedSavedItems() {
+  const items = state.savedItems.filter(item => state.selectedSavedItemIds.has(item.id));
+  if (items.length === 0) return;
+
+  for (const item of items) {
+    if (!item.url) continue;
+    if (!hasChromeApi("tabs")) {
+      window.open(item.url, "_blank", "noopener");
+    } else {
+      await chrome.tabs.create({ url: item.url });
+    }
+  }
+}
+
+async function removeSelectedSavedItems() {
+  const itemIds = new Set(state.selectedSavedItemIds);
+  if (itemIds.size === 0) return;
+
+  state.savedItems = state.savedItems.filter(item => !itemIds.has(item.id));
+  state.selectedSavedItemIds.clear();
+  elements.savedBulkStatus.value = "";
+  elements.savedBulkTags.value = "";
+  await persistSavedItems();
+  updateTagFilterOptions();
+  renderSavedItems();
+  renderOpenTabs();
 }
 
 async function removeSavedItem(itemId) {
@@ -1776,6 +1828,18 @@ function bindEvents() {
   elements.savedBulkEditor.addEventListener("submit", async event => {
     event.preventDefault();
     await updateSelectedSavedItems();
+  });
+
+  elements.selectAllSavedButton.addEventListener("click", () => {
+    selectAllVisibleSavedItems();
+  });
+
+  elements.openSelectedSavedButton.addEventListener("click", async () => {
+    await openSelectedSavedItems();
+  });
+
+  elements.removeSelectedSavedButton.addEventListener("click", async () => {
+    await removeSelectedSavedItems();
   });
 
   elements.openTabsList.addEventListener("click", async event => {
